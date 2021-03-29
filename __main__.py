@@ -1,6 +1,8 @@
 import pathlib
 from PIL import Image
 import numpy
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_pdf import PdfPages
 
 def Search_Algorithm(reference, barcodes):
     search_result = []
@@ -76,6 +78,30 @@ def Barcode_Generator(image, Th_P1_offset = 1.2, Th_P2_offset = 1.5, Th_P3_offse
     RBC = C1 + C2 + C3 + C4
     return RBC
 
+def save_result(match_pairs):
+    with PdfPages('Results.pdf') as pdf_file:
+        for i in range(0, len(match_pairs), 5):
+            figure = plt.figure(figsize = (11, 14))
+            figure.tight_layout()
+            plt.subplots_adjust(hspace = 0.5)
+            for pair in match_pairs[i : i + 5]:
+                index = match_pairs[i : i + 5].index(pair)
+                # plot known image
+                figure.add_subplot(5, 2, 2 * index + 1)
+                plt.imshow(Image.open(pair[0][1]))
+                plt.title(pair[0][1], pad = 15)
+                # plot potential match
+                figure.add_subplot(5, 2, 2 * index + 2)
+                plt.imshow(Image.open(pair[1][1]))
+
+                if pair[2] == True:
+                    plt.title(pair[1][1], pad = 15, color = "green")
+                else:
+                    plt.title(pair[1][1], pad = 15, color = "red")
+
+            pdf_file.savefig()
+            plt.close()
+       
 
 if __name__ == "__main__":
 
@@ -92,12 +118,21 @@ if __name__ == "__main__":
 
     hits = 0
     misses = 0
-    for i in range(0, 100):
+    match_pairs = []
+    for i in range(100):
         closest_match = Search_Algorithm(barcodes[i], barcodes)
         if barcodes[i][0] == closest_match[0]:
             hits += 1
+            match_pairs.append([barcodes[i][0:2], closest_match[0:2], True])
         else:
             misses += 1
+            match_pairs.append([barcodes[i][0:2], closest_match[0:2], False])
     print('--------------------------')
     print(f'Retrieval Accuracy: {100 * hits/(hits + misses)} % [{hits} hits & {misses} misses]')
     print('--------------------------')
+    print()
+    print('Saving results to ./Results.pdf. This may take a while...')
+    print()
+    save_result(match_pairs)
+
+
